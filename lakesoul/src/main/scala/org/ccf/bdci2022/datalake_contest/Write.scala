@@ -30,7 +30,7 @@ object Write {
       builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
         .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
 
-    val spark = builder .getOrCreate()
+    val spark = builder.getOrCreate()
 
     import spark.implicits._
     val data = Seq(("Java", "20000"), ("Python", "100000"), ("Scala", "3000"))
