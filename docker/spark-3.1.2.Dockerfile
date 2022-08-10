@@ -23,6 +23,7 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 30
 RUN python -m easy_install install pip
 RUN python -m pip config set global.index-url https://repo.huaweicloud.com/repository/pypi/simple
 RUN python -m pip install pyarrow pandas py4j==0.10.9 --no-cache-dir
+RUN python -m pip install awscli==1.19.112 --no-cache-dir
 
 RUN mkdir -p /opt/spark \
     && wget -q https://dmetasoul-bucket.ks3-cn-beijing.ksyuncs.com/releases/spark/spark-3.1.2-bin-free-265f9ad4ee.tgz \
@@ -44,4 +45,4 @@ RUN chmod g+w /opt/spark/work-dir
 RUN chmod a+x /opt/decom.sh
 RUN chmod a+x /opt/entrypoint.sh
 RUN chgrp root /etc/passwd && chmod ug+rw /etc/passwd
-ENTRYPOINT [ "/opt/entrypoint.sh" ]
+#ENTRYPOINT [ "/opt/entrypoint.sh" ]

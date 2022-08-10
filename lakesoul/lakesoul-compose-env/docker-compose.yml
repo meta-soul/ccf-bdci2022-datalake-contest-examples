@@ -10,6 +10,7 @@ services:
       POSTGRES_DB: lakesoul_test
     volumes:
       - ./meta_init.sql:/docker-entrypoint-initdb.d/meta_init.sql
+      - ./meta_cleanup.sql:/meta_cleanup.sql
 
   minio:
     image: bitnami/minio:latest

@@ -12,7 +12,8 @@ rm -rf lakesoul/target/jars && mkdir -p lakesoul/target/jars
 mvn package -pl lakesoul -am -DskipTests
 
 cp lakesoul/target/datalake_contest-1.0.0-SNAPSHOT.jar lakesoul/target/jars/datalake_contest.jar
+cp lakesoul/lakesoul.properties lakesoul/target/jars
 
-mvn dependency:copy-dependencies -DoutputDirectory=target/jars -DincludeScope=runtime -pl lakesoul -DskipTests
+mvn dependency:copy-dependencies -DoutputDirectory=target/jars -DincludeScope=runtime -DexcludeGroupIds=org.slf4j -pl lakesoul -DskipTests
 
 tar czf lakesoul/target/datalake_contest.tar.gz -C lakesoul/target/jars .
