@@ -1,9 +1,10 @@
 package org.ccf.bdci2022.datalake_contest
 
 import com.dmetasoul.lakesoul.tables.LakeSoulTable
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
-object Write {
+object Read {
   def main(args: Array[String]): Unit = {
     val builder = SparkSession.builder()
       .appName("CCF BDCI 2022 DataLake Contest")
@@ -31,11 +32,8 @@ object Write {
         .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
 
     val spark = builder.getOrCreate()
-    import spark.implicits._
-
-    // tablePath: local test can use local path
-    val tablePath = "s3://dmetasoul-bucket/lakesoul/CCF/table_test"
-    val df = spark.read.format("parquet").option("header", true).load("s3://dmetasoul-bucket/lakesoul/CCF/base-0.parquet").toDF()
-    df.write.format("lakesoul").mode("Overwrite").save(tablePath)
+    val tablePath= "s3://dmetasoul-bucket/lakesoul/CCF/table_test"
+    val table = LakeSoulTable.forPath(tablePath)
+    table.toDF.write.parquet("/opt/spark/work-dir/result/")
   }
 }
