@@ -22,9 +22,31 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.83</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>4.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.3.3</version>
+        </dependency>
+        <dependency>
             <groupId>com.dmetasoul</groupId>
             <artifactId>lakesoul-spark</artifactId>
             <version>2.1.0-lakesoul-spark-3.1.2-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.dmetasoul</groupId>
+            <artifactId>lakesoul-common</artifactId>
+            <version> 2.1.0-SNAPSHOT</version>
+            <scope>compile</scope>
         </dependency>
 
         <!-- scala deps -->
@@ -85,6 +107,30 @@
         <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
         <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.2.4</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <artifactSet>
+                        <includes>
+                            <include>com.dmetasoul:lakesoul-spark</include>
+                            <include>com.dmetasoul:lakesoul-common</include>
+                            <include>com.zaxxer:HikariCP</include>
+                            <include>org.postgresql:postgresql</include>
+                            <include>com.alibaba:fastjson</include>
+                        </includes>
+                    </artifactSet>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.scala-tools</groupId>
                 <artifactId>maven-scala-plugin</artifactId>
