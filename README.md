@@ -18,19 +18,25 @@
     ```
     然后使用 `docker compose ps` 查看启动状态，当 lakesoul-compose-env-lakesoul-meta-db-1 、lakesoul-compose-env-minio-1 的 STATUS 列都显示 running 时说明启动成功。
 3. 测试 Spark 读写 LakeSoul 表
-   1. 编译打包 LakeSoul 示例代码，执行 `./build_lakesoul.sh`
+   1. 编译打包 LakeSoul 示例代码，执行 `./build_lakesoul.sh`，将执行后压缩文件datalake.tar.gz放到/opt/spark/work-dir下，解压 tar -xvf datalake.tar.gz
    2. 拉取 Spark 镜像
        ```bash 
        docker pull swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2
        ```
-   2. 执行 Spark 作业
+   3. 获取源数据，加压到本地/opt/spark/work-dir/data下
+       ```bash
+       cd /opt/spark/work-dir/data
+       wget https://dmetasoul-bucket.ks3-cn-beijing.ksyuncs.com/lakesoul/CCF/table_test/CCFdata.tar.gz
+       tar -xvf CCFdata.tar.gz
+       ```
+   4. 执行 Spark 作业
        ```bash
        # 清理元数据
        docker exec -ti lakesoul-compose-env-lakesoul-meta-db-1 psql -h localhost -U lakesoul_test -d lakesoul_test -f /meta_cleanup.sql
        # 清理 S3(Minio) 数据
        docker run --net lakesoul-compose-env_default --rm -t swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 aws --no-sign-request --endpoint-url http://minio:9000 s3 rm --recursive s3://ccf-datalake-contest/datalake_table/ccf_datalake_contest_table
        # 执行 LakeSoul 作业
-       docker run --net lakesoul-compose-env_default --rm -t -v /home/chenxu/program/meta/ccf-bdci2022-datalake-contest-examples/ccf-bdci2022-datalake-contest-examples/lakesoul/target/jars:/opt/spark/extra_jars --env lakesoul_home=/opt/spark/extra_jars/lakesoul.properties swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 spark-submit --driver-class-path "/opt/spark/extra_jars/*" --class org.ccf.bdci2022.datalake_contest.Write /opt/spark/extra_jars/datalake_contest.jar --localtest
+       docker run --net lakesoul-compose-env_default --rm -t -v /opt/spark/work-dir:/opt/spark/work-dir --env lakesoul_home=/opt/spark/work-dir/lakesoul.properties swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 spark-submit --class org.ccf.bdci2022.datalake_contest.Write --master local[4] /opt/spark/work-dir/datalake_contest.jar --localtest
        ```
        执行 Spark 作业时，我们在 main 方法里检测是否传了 `--localtest` 参数，如果是本地测试，则增加 minio 相关的配置项。在提交到评测平台执行时，不会添加这个参数，s3 环境由评测平台默认配置好。
 
