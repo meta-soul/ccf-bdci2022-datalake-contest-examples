@@ -1,10 +1,7 @@
 package org.ccf.bdci2022.datalake_contest
 
-import com.dmetasoul.lakesoul.tables.LakeSoulTable
-import org.apache.spark
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.{col, when}
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.ccf.bdci2022.datalake_contest.Write.overWriteTable
 
 object Write {
   def main(args: Array[String]): Unit = {
@@ -34,9 +31,6 @@ object Write {
         .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
 
     val spark = builder.getOrCreate()
-    import spark.implicits._
-
-    // tablePath: local test can use local path
 
     val dataPath0 = "/opt/spark/work-dir/data/base-0.parquet"
     val dataPath1 = "/opt/spark/work-dir/data/base-1.parquet"
@@ -51,7 +45,7 @@ object Write {
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
 
     val tablePath = "s3://ccf-datalake-contest/datalake_table"
-    val df = spark.read.format("parquet").option("header", true).load(dataPath0).toDF()
+    val df = spark.read.format("parquet").load(dataPath0).toDF()
     df.write.format("lakesoul").mode("Overwrite").save(tablePath)
 
     overWriteTable(spark, tablePath, dataPath1)
@@ -68,7 +62,7 @@ object Write {
 
   def overWriteTable(spark: SparkSession, tablePath: String, path: String): Unit = {
     val df1 = spark.read.format("lakesoul").load(tablePath)
-    val df2 = spark.read.format("parquet").option("header", true).load(path)
+    val df2 = spark.read.format("parquet").load(path)
     df1.join(df2, Seq("uuid"),"full").select(
       col("uuid"),
       when(df2("ip").isNotNull, df2("ip")).otherwise(df1("ip")).alias("ip"),
