@@ -34,6 +34,6 @@ object Read {
     val spark = builder.getOrCreate()
     val tablePath= "s3://ccf-datalake-contest/datalake_table"
     val table = LakeSoulTable.forPath(tablePath)
-    table.toDF.write.parquet("/opt/spark/work-dir/result/")
+    table.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")
   }
 }
