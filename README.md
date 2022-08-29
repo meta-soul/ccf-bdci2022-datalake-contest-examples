@@ -3,6 +3,14 @@
 ## LakeSoul 示例
 在 `lakesoul` 目录下提供了使用 LakeSoul 写入数据并读取的示例代码。
 
+### 本地执行评测脚本：
+```bash
+# 构建 lakesoul jar 包
+./build_lakesoul.sh
+# 运行评测脚本，该脚本内会自动下载数据，执行 lakesoul 读写作业，并验证正确性，最后输出运行时间
+./CCFCheck.sh
+```
+
 ### 本地开发并测试运行 LakeSoul
 我们提供了 docker-compose 脚本，可以在本地快速搭建 LakeSoul 所需的运行环境，包括：
 - PostgreSQL (作为 LakeSoul 元数据服务存储)
@@ -23,7 +31,7 @@
        ```bash 
        docker pull swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2
        ```
-   3. 获取源数据，加压到本地/opt/spark/work-dir/data下
+   3. 获取源数据，解压到本地 /opt/spark/work-dir/data下
        ```bash
        cd /opt/spark/work-dir/data
        wget https://dmetasoul-bucket.ks3-cn-beijing.ksyuncs.com/lakesoul/CCF/table_test/CCFdata.tar.gz
@@ -34,7 +42,7 @@
        # 清理元数据
        docker exec -ti lakesoul-compose-env-lakesoul-meta-db-1 psql -h localhost -U lakesoul_test -d lakesoul_test -f /meta_cleanup.sql
        # 清理 S3(Minio) 数据
-       docker run --net lakesoul-compose-env_default --rm -t swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 aws --no-sign-request --endpoint-url http://minio:9000 s3 rm --recursive s3://ccf-datalake-contest/datalake_table/ccf_datalake_contest_table
+       docker run --net lakesoul-compose-env_default --rm -t swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 aws --no-sign-request --endpoint-url http://minio:9000 s3 rm --recursive s3://ccf-datalake-contest/datalake_table
        # 执行 LakeSoul 作业
        docker run --net lakesoul-compose-env_default --rm -t -v /opt/spark/work-dir:/opt/spark/work-dir --env lakesoul_home=/opt/spark/work-dir/lakesoul.properties swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 spark-submit --class org.ccf.bdci2022.datalake_contest.Write --master local[4] /opt/spark/work-dir/datalake_contest.jar --localtest
        ```

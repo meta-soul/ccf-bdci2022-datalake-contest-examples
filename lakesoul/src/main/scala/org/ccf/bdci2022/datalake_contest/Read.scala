@@ -22,6 +22,8 @@ object Read {
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
+      .config("spark.sql.shuffle.partitions", 10)
+      .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
       .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
       .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
@@ -32,6 +34,7 @@ object Read {
         .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
 
     val spark = builder.getOrCreate()
+    spark.sparkContext.setLogLevel("ERROR")
     val tablePath= "s3://ccf-datalake-contest/datalake_table"
     val table = LakeSoulTable.forPath(tablePath)
     table.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")

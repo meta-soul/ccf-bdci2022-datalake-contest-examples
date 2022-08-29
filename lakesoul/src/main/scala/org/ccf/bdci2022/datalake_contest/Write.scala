@@ -19,6 +19,8 @@ object Write {
       .config("spark.hadoop.fs.s3a.fast.upload.buffer", "disk")
       .config("spark.hadoop.fs.s3a.fast.upload", value = true)
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
+      .config("spark.sql.shuffle.partitions", 10)
+      .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
@@ -31,6 +33,7 @@ object Write {
         .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
 
     val spark = builder.getOrCreate()
+    spark.sparkContext.setLogLevel("ERROR")
 
     val dataPath0 = "/opt/spark/work-dir/data/base-0.parquet"
     val dataPath1 = "/opt/spark/work-dir/data/base-1.parquet"
