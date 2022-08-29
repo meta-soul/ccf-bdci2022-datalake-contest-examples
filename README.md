@@ -4,6 +4,7 @@
 在 `lakesoul` 目录下提供了使用 LakeSoul 写入数据并读取的示例代码。
 
 ### 本地执行评测脚本：
+首先需要启动本地 docker-compose 环境，参考本页下方说明。然后执行以下两个脚本，即可完整跑通评测流程：
 ```bash
 # 构建 lakesoul jar 包
 ./build_lakesoul.sh
