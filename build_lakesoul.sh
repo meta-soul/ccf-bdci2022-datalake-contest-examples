@@ -14,4 +14,5 @@ mvn package -pl lakesoul -am -DskipTests
 cp lakesoul/target/lakesoul-1.0.0-SNAPSHOT.jar target/jars/datalake_contest.jar
 cp lakesoul/lakesoul.properties target/jars
 
-tar czf target/datalake.tar.gz -C target/jars .
+rm -f target/submit.zip
+zip -r -j target/submit.zip target/jars/*

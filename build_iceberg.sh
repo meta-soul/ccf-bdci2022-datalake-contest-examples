@@ -14,4 +14,5 @@ mvn package -pl iceberg -am -DskipTests
 cp iceberg/target/iceberg-1.0.0-SNAPSHOT.jar target/jars/datalake_contest.jar
 mvn dependency:copy-dependencies -DoutputDirectory=../target/jars -DincludeScope=runtime -pl iceberg -am
 
-tar czf target/datalake.tar.gz -C target/jars .
+rm -f target/submit.zip
+zip -r -j target/submit.zip target/jars/*

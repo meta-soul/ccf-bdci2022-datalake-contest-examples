@@ -25,11 +25,11 @@ object Write {
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table")
       .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
       .config("spark.sql.catalog.iceberg", "org.apache.iceberg.spark.SparkCatalog")
       .config("spark.sql.catalog.iceberg.type", "hadoop")
-      .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/")
+      .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/datalake_table")
 
     if (args.length >= 1 && args(0) == "--localtest")
       builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
