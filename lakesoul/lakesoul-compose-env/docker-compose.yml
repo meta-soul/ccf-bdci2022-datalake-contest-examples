@@ -2,7 +2,7 @@ version: '3'
 
 services:
   lakesoul-meta-db:
-    image: postgres:latest
+    image: swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/postgres:14.5
     restart: always
     environment:
       POSTGRES_PASSWORD: lakesoul_test
@@ -13,7 +13,7 @@ services:
       - ./meta_cleanup.sql:/meta_cleanup.sql
 
   minio:
-    image: bitnami/minio:latest
+    image: swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/bitnami-minio:2022.8.22-debian-11-r1
     ports:
       - "9000:9000"
       - "9001:9001"

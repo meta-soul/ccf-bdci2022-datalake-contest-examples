@@ -21,6 +21,7 @@ object Write {
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
       .config("spark.sql.shuffle.partitions", 10)
       .config("spark.sql.files.maxPartitionBytes", "1g")
+      .config("spark.default.parallelism", 8)
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")

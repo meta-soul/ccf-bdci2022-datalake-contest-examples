@@ -2,3 +2,5 @@
 /.idea/
 /work-dir/
 CCFResult
+*.iml
+/lakesoul/dependency-reduced-pom.xml

@@ -23,6 +23,7 @@ object Read {
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.sql.shuffle.partitions", 10)
+      .config("spark.default.parallelism", 8)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
       .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
