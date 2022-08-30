@@ -7,7 +7,8 @@
 [交流讨论](https://www.datafountain.cn/competitions/585/discuss)
 
 扫码加群：
-![扫码加群](https://s3.cn-north-1.amazonaws.com.cn/files.datafountain.cn/uploads/admin/editor/2022-08-23/2022%20CCF%20BDCI-%E6%95%B0%E6%8D%AE%E6%B9%96%E6%B5%81%E6%89%B9%E4%B8%80%E4%BD%93%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96-764337.png)
+![image](https://user-images.githubusercontent.com/96784498/187391043-5e24e15e-ed73-48c5-9015-b444961204a4.png)
+
 
 ## 参赛示例代码
 在 `lakesoul` 目录下提供了使用 [LakeSoul](https://github.com/meta-soul/LakeSoul) 写入数据并读取的示例代码。
