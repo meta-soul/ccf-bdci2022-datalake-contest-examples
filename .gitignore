@@ -1,4 +1,6 @@
 /target/
+/lakesoul/target/
+/iceberg/target/
 /.idea/
 /work-dir/
 CCFResult

@@ -7,11 +7,11 @@ DIR="$(realpath "${DIR}")"
 
 cd "$DIR"
 
-rm -rf lakesoul/target/jars && mkdir -p lakesoul/target/jars
+rm -rf target/jars && mkdir -p target/jars
 
 mvn package -pl lakesoul -am -DskipTests
 
-cp lakesoul/target/datalake_contest-1.0.0-SNAPSHOT.jar lakesoul/target/jars/datalake_contest.jar
-cp lakesoul/lakesoul.properties lakesoul/target/jars
+cp lakesoul/target/lakesoul-1.0.0-SNAPSHOT.jar target/jars/datalake_contest.jar
+cp lakesoul/lakesoul.properties target/jars
 
-tar czf lakesoul/target/datalake.tar.gz -C lakesoul/target/jars .
+tar czf target/datalake.tar.gz -C target/jars .

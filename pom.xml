@@ -9,6 +9,7 @@
     <version>1.0.0-SNAPSHOT</version>
     <modules>
         <module>lakesoul</module>
+        <module>iceberg</module>
     </modules>
     <packaging>pom</packaging>
     <name>CCF BDCI2022 DataLake Contest Examples POM</name>
