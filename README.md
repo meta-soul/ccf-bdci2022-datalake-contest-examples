@@ -58,7 +58,7 @@
        ```bash
        cd work-dir/data
        wget https://dmetasoul-bucket.obs.cn-southwest-2.myhuaweicloud.com/lakesoul/CCF/Test/CCFDataTest.tar.gz
-       tar -xf CCFdataTest.tar.gz -C work-dir/data
+       tar -xf CCFDataTest.tar.gz -C work-dir/data
        ```
    4. 执行 Spark 作业
        ```bash
