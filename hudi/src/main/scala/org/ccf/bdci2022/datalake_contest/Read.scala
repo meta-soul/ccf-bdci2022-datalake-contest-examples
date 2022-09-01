@@ -1,7 +1,7 @@
 package org.ccf.bdci2022.datalake_contest
 
-import com.dmetasoul.lakesoul.tables.LakeSoulTable
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object Read {
   def main(args: Array[String]): Unit = {
@@ -21,13 +21,16 @@ object Read {
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
-      .config("spark.sql.shuffle.partitions", 10)
-      .config("spark.default.parallelism", 8)
-      .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
       .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
-      .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
-      .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.lakesoul.catalog.LakeSoulCatalog")
+      .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .config("spark.driver.memoryOverhead", "1500m")
+      .config("spark.driver.memory", "14g")
+      .config("spark.executor.memory", "14g")
+      .config("spark.executor.memoryOverhead", "1500m")
+      .config("spark.memory.fraction", "0.2")
+      .config("spark.memory.storageFraction", "0.2")
+      .config("spark.sql.extensions", "org.apache.spark.sql.hudi.HoodieSparkSessionExtension")
 
     if (args.length >= 1 && args(0) == "--localtest")
       builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
@@ -35,8 +38,12 @@ object Read {
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
-    val tablePath= "s3://ccf-datalake-contest/datalake_table"
-    val table = LakeSoulTable.forPath(tablePath)
-    table.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")
+
+    val tablePath = "s3://ccf-datalake-contest/datalake_table/hudi_test"
+
+    val df: DataFrame = spark.read.format("hudi").load(tablePath).select(col("uuid"), col("ip"), col("hostname"), col("requests"), col("name"),
+      col("city"), col("job"), col("phonenum"))
+
+    df.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")
   }
 }
