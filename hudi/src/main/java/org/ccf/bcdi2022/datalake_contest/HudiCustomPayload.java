@@ -20,8 +20,8 @@ public class HudiCustomPayload implements HoodieRecordPayload<HudiCustomPayload>
     @Override
     public HudiCustomPayload preCombine(HudiCustomPayload oldValue) {
         Long requests = Long.parseLong(this.record.get("requests").toString());
-        long requests1 = requests + Long.parseLong(oldValue.record.get("requests").toString());
-        this.record.put("requests", String.valueOf(requests1));
+        Long requests1 = requests + Long.parseLong(oldValue.record.get("requests").toString());
+        this.record.put("requests", requests1);
         return this;
     }
 
@@ -47,7 +47,7 @@ public class HudiCustomPayload implements HoodieRecordPayload<HudiCustomPayload>
 //                        String ss = currentRecord.get(field.name()).toString();
 //                        System.out.println(ss);
                 Long aa = Long.parseLong(value.toString()) + Long.parseLong(currentRecord.get(field.name()).toString());
-                builder.set(field, aa.toString());
+                builder.set(field, aa);
             } else if (field.name().equals("name")) {
                 if (value.toString().equals("null")) {
                     builder.set(field, currentRecord.get(field.name()).toString());
