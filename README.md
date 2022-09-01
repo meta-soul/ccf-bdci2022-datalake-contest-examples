@@ -13,7 +13,12 @@
 
 ## 参赛示例代码
 在 `lakesoul` 目录下提供了使用 [LakeSoul](https://github.com/meta-soul/LakeSoul) 写入数据并读取的示例代码。
+
 在 `iceberg` 目录下提供了使用 [Iceberg](https://github.com/apache/iceberg) 写入数据并读取的示例代码。
+
+在 `hudi` 目录下提供了使用 [hudi](https://github.com/apache/hudi) 写入数据并读取的示例代码。
+
+选手可以选择任意一个数据湖存储框架参赛。
 
 ### 本地执行评测脚本：
 首先需要启动本地 docker-compose 环境，参考本页下方说明。
@@ -58,7 +63,7 @@
     然后使用 `docker compose ps` 查看启动状态，当 ccf-bdci2022-local-env-lakesoul-meta-db-1 、ccf-bdci2022-local-env-minio-1 的 STATUS 列都显示 running （minio 状态需要是 healthy） 时说明启动成功。
 3. 测试 Spark 读写
    这个部分的详细流程可以参考 [CCFCheck.sh](./CCFCheck.sh) 脚本中的内容，大致有如下几个步骤：
-   1. 编译打包 LakeSoul 或 Iceberg 示例代码，即 `./build_lakesoul.sh`、`./build_hudi.sh` 或 `./build_iceberge.sh`，将执行后生成的压缩文件 `target/submit.zip` 解压到 work-dir下，解压命令 unzip -q -o target/submit.zip -d work-dir/
+   1. 编译打包 LakeSoul、Hudi 或 Iceberg 示例代码，即 `./build_lakesoul.sh`、`./build_hudi.sh` 或 `./build_iceberge.sh`，将执行后生成的压缩文件 `target/submit.zip` 解压到 work-dir下，解压命令 unzip -q -o target/submit.zip -d work-dir/
    2. 拉取 Spark 镜像
        ```bash 
        docker pull swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2
