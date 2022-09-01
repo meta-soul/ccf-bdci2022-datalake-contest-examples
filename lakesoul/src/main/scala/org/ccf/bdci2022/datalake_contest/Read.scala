@@ -1,7 +1,6 @@
 package org.ccf.bdci2022.datalake_contest
 
 import com.dmetasoul.lakesoul.tables.LakeSoulTable
-import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
 object Read {

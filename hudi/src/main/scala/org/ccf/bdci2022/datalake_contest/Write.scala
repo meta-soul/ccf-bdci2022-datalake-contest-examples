@@ -1,11 +1,8 @@
 package org.ccf.bdci2022.datalake_contest
 
-import org.apache.hudi.DataSourceWriteOptions
-import org.apache.hudi.DataSourceWriteOptions.{ASYNC_COMPACT_ENABLE, KEYGENERATOR_CLASS_OPT_KEY, MOR_TABLE_TYPE_OPT_VAL, OPERATION, PARTITIONPATH_FIELD, PAYLOAD_CLASS_NAME, PRECOMBINE_FIELD, RECORDKEY_FIELD, TABLE_TYPE, UPSERT_OPERATION_OPT_VAL}
-import org.apache.hudi.common.model.HoodieTableType
+import org.apache.hudi.DataSourceWriteOptions._
 import org.apache.hudi.config.HoodieWriteConfig.TBL_NAME
 import org.apache.spark.sql.{SaveMode, SparkSession}
-import org.apache.spark.sql.functions.{col, when}
 
 object Write {
   def main(args: Array[String]): Unit = {
@@ -28,27 +25,20 @@ object Write {
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
       .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
       .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+      .config("spark.driver.memoryOverhead", "1500m")
+      .config("spark.driver.memory", "14g")
+      .config("spark.executor.memory", "14g")
+      .config("spark.executor.memoryOverhead", "1500m")
+      .config("spark.memory.fraction", "0.2")
+      .config("spark.memory.storageFraction", "0.2")
+      .config("spark.sql.extensions", "org.apache.spark.sql.hudi.HoodieSparkSessionExtension")
 
     if (args.length >= 1 && args(0) == "--localtest")
       builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
         .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
 
     val spark = builder.getOrCreate()
-
-    // tablePath: local test can use local path
-
-//    val dataPath0 = "/Users/dudongfeng/Desktop/base-0.parquet"
-//    val dataPath1 = "/Users/dudongfeng/Desktop/base-1.parquet"
-//    val dataPath2 = "/Users/dudongfeng/Desktop/base-2.parquet"
-//    val dataPath3 = "/Users/dudongfeng/Desktop/base-3.parquet"
-//    val dataPath4 = "/Users/dudongfeng/Desktop/base-4.parquet"
-//    val dataPath5 = "/Users/dudongfeng/Desktop/base-5.parquet"
-//    val dataPath6 = "/Users/dudongfeng/Desktop/base-6.parquet"
-//    val dataPath7 = "/Users/dudongfeng/Desktop/base-7.parquet"
-//    val dataPath8 = "/Users/dudongfeng/Desktop/base-8.parquet"
-//    val dataPath9 = "/Users/dudongfeng/Desktop/base-9.parquet"
-//    val dataPath10 = "/Users/dudongfeng/Desktop/base-10.parquet"
-
+    spark.sparkContext.setLogLevel("ERROR")
 
     val dataPath0 = "/opt/spark/work-dir/data/base-0.parquet"
     val dataPath1 = "/opt/spark/work-dir/data/base-1.parquet"
@@ -61,61 +51,52 @@ object Write {
     val dataPath8 = "/opt/spark/work-dir/data/base-8.parquet"
     val dataPath9 = "/opt/spark/work-dir/data/base-9.parquet"
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
-
-    import spark.implicits._
-//    val tablePath = "file:///Users/dudongfeng/work/zehy/hudi/table_test1"
     val tablePath = "s3://ccf-datalake-contest/datalake_table/hudi_test"
     val tableName : String = "hudi_test"
-    val df = spark.read.format("parquet").option("header", true).load(dataPath0).toDF()
+    val df = spark.read.format("parquet").load(dataPath0)
 
     df.write.format("hudi").mode("Overwrite")
-      .option("hoodie.insert.shuffle.parallelism", "1")
-      .option("hoodie.upsert.shuffle.parallelism", "1")
+      .option("hoodie.insert.shuffle.parallelism", "8")
+      .option("hoodie.upsert.shuffle.parallelism", "8")
       .option(PRECOMBINE_FIELD.key(), "uuid")
       .option(RECORDKEY_FIELD.key(), "uuid")
-      .option(PARTITIONPATH_FIELD.key(), "")
-//      .option(KEYGENERATOR_CLASS_OPT_KEY, "org.apache.hudi.keygen.NonpartitionedKeyGenerator")
       .option(PAYLOAD_CLASS_NAME.key(), "org.ccf.bcdi2022.datalake_contest.HudiCustomPayload")
-      .option(TABLE_TYPE.key(), MOR_TABLE_TYPE_OPT_VAL)
-      .option("hoodie.parquet.small.file.limit", "204800000")
-      .option("hoodie.parquet.max.file.size", "102400000")
-//      .option(DataSourceWriteOptions.TABLE_TYPE_OPT_KEY, DataSourceWriteOptions.MOR_TABLE_TYPE_OPT_VAL)
-//      .option(ASYNC_COMPACT_ENABLE.key(), "false")
-//      .option("hoodie.compaction.logfile.size.threshold", "1000000000L")
+      .option(TABLE_TYPE.key(), COW_TABLE_TYPE_OPT_VAL)
+      .option(OPERATION.key(), BULK_INSERT_OPERATION_OPT_VAL)
+      .option("hoodie.bulkinsert.sort.mode", "NONE")
+      .option("hoodie.parquet.max.file.size", "141557760")
+      .option("hoodie.parquet.block.size", "141557760")
+      .option("hoodie.parquet.compression.codec", "snappy")
       .option(TBL_NAME.key(), tableName)
       .save(tablePath)
 
-    upertHudiTable(spark, tableName, tablePath, dataPath1)
-    upertHudiTable(spark, tableName, tablePath, dataPath2)
-    upertHudiTable(spark, tableName, tablePath, dataPath3)
-    upertHudiTable(spark, tableName, tablePath, dataPath4)
-    upertHudiTable(spark, tableName, tablePath, dataPath5)
-    upertHudiTable(spark, tableName, tablePath, dataPath6)
-    upertHudiTable(spark, tableName, tablePath, dataPath7)
-    upertHudiTable(spark, tableName, tablePath, dataPath8)
-    upertHudiTable(spark, tableName, tablePath, dataPath9)
-    upertHudiTable(spark, tableName, tablePath, dataPath10)
+    upsertHudiTable(spark, tableName, tablePath, dataPath1)
+    upsertHudiTable(spark, tableName, tablePath, dataPath2)
+    upsertHudiTable(spark, tableName, tablePath, dataPath3)
+    upsertHudiTable(spark, tableName, tablePath, dataPath4)
+    upsertHudiTable(spark, tableName, tablePath, dataPath5)
+    upsertHudiTable(spark, tableName, tablePath, dataPath6)
+    upsertHudiTable(spark, tableName, tablePath, dataPath7)
+    upsertHudiTable(spark, tableName, tablePath, dataPath8)
+    upsertHudiTable(spark, tableName, tablePath, dataPath9)
+    upsertHudiTable(spark, tableName, tablePath, dataPath10)
 
   }
 
-  def upertHudiTable(spark: SparkSession, tableName:String, tablePath: String, path: String): Unit = {
-    val upsert_data = spark.read.format("parquet").option("header", true).load(path).toDF()
+  def upsertHudiTable(spark: SparkSession, tableName:String, tablePath: String, path: String): Unit = {
+    val upsert_data = spark.read.format("parquet").load(path)
     upsert_data.write.format("hudi")
       .mode(SaveMode.Append)
-      .option("hoodie.insert.shuffle.parallelism", "1")
-      .option("hoodie.upsert.shuffle.parallelism", "1")
+      .option("hoodie.insert.shuffle.parallelism", "8")
+      .option("hoodie.upsert.shuffle.parallelism", "8")
       .option(PRECOMBINE_FIELD.key(), "uuid")
       .option(RECORDKEY_FIELD.key(), "uuid")
-      .option(PARTITIONPATH_FIELD.key(), "")
-//      .option(KEYGENERATOR_CLASS_OPT_KEY, "org.apache.hudi.keygen.NonpartitionedKeyGenerator")
       .option(PAYLOAD_CLASS_NAME.key(),"org.ccf.bcdi2022.datalake_contest.HudiCustomPayload")
-      .option(TABLE_TYPE.key(), MOR_TABLE_TYPE_OPT_VAL)
-      .option("hoodie.parquet.small.file.limit", "204800000")
-      .option("hoodie.parquet.max.file.size", "102400000")
-//      .option(DataSourceWriteOptions.TABLE_TYPE_OPT_KEY, DataSourceWriteOptions.MOR_TABLE_TYPE_OPT_VAL)
-//      .option("hoodie.compaction.logfile.size.threshold", "1000000000L")
       .option(OPERATION.key(), UPSERT_OPERATION_OPT_VAL)
       .option(TBL_NAME.key(), tableName)
+      .option("hoodie.parquet.max.file.size", "141557760")
+      .option("hoodie.parquet.block.size", "141557760")
+      .option("hoodie.parquet.compression.codec", "snappy")
       .save(tablePath)
   }
 
