@@ -50,21 +50,24 @@ object Write {
 
     val tablePath = "s3://ccf-datalake-contest/datalake_table"
     val df = spark.read.format("parquet").load(dataPath0).toDF()
-    df.write.format("lakesoul").mode("Overwrite").save(tablePath)
+    df.write.format("lakesoul")
+      .option("hashPartitions", "uuid")
+      .option("hashBucketNum", 4)
+      .mode("Overwrite").save(tablePath)
 
-    overWriteTable(spark, tablePath, dataPath1)
-    overWriteTable(spark, tablePath, dataPath2)
-    overWriteTable(spark, tablePath, dataPath3)
-    overWriteTable(spark, tablePath, dataPath4)
-    overWriteTable(spark, tablePath, dataPath5)
-    overWriteTable(spark, tablePath, dataPath6)
-    overWriteTable(spark, tablePath, dataPath7)
-    overWriteTable(spark, tablePath, dataPath8)
-    overWriteTable(spark, tablePath, dataPath9)
-    overWriteTable(spark, tablePath, dataPath10)
+    upsertTable(spark, tablePath, dataPath1)
+    upsertTable(spark, tablePath, dataPath2)
+    upsertTable(spark, tablePath, dataPath3)
+    upsertTable(spark, tablePath, dataPath4)
+    upsertTable(spark, tablePath, dataPath5)
+    upsertTable(spark, tablePath, dataPath6)
+    upsertTable(spark, tablePath, dataPath7)
+    upsertTable(spark, tablePath, dataPath8)
+    upsertTable(spark, tablePath, dataPath9)
+    upsertTable(spark, tablePath, dataPath10)
   }
 
-  def overWriteTable(spark: SparkSession, tablePath: String, path: String): Unit = {
+  def upsertTable(spark: SparkSession, tablePath: String, path: String): Unit = {
     val df1 = spark.read.format("lakesoul").load(tablePath)
     val df2 = spark.read.format("parquet").load(path)
     df1.join(df2, Seq("uuid"),"full").select(
