@@ -11,6 +11,7 @@ object Write {
       .master("local[4]")
       .config("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
       .config("hadoop.fs.s3a.committer.name", "directory")
+      .config("spark.local.dir", "/opt/spark/work-dir/tmp")
       .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "append")
       .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/opt/spark/work-dir/s3a_staging")
       .config("spark.hadoop.mapreduce.outputcommitter.factory.scheme.s3a", "org.apache.hadoop.fs.s3a.commit.S3ACommitterFactory")
