@@ -33,7 +33,7 @@ mkdir work-dir/result
 
 start=`date +%s`
 #start write
-docker run --cpus 4 -m 16000m --net ccf-bdci2022-local-env_default --rm -t -v ${PWD}/work-dir:/opt/spark/work-dir --env lakesoul_home=/opt/spark/work-dir/lakesoul.properties swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 spark-submit --driver-memory 14G --executor-memory 14G --conf spark.driver.memoryOverhead=1500m --conf spark.executor.memoryOverhead=1500m --driver-class-path /opt/spark/work-dir/* --conf spark.hadoop.fs.s3.buffer.dir=/tmp --conf spark.hadoop.fs.s3a.buffer.dir=/tmp --conf  spark.hadoop.fs.s3a.fast.upload.buffer=disk --conf spark.hadoop.fs.s3a.fast.upload=true --class org.ccf.bdci2022.datalake_contest.Write --master local[4] /opt/spark/work-dir/datalake_contest.jar --localtest
+docker run --cpus 4 -m 30000m --net ccf-bdci2022-local-env_default --rm -t -v ${PWD}/work-dir:/opt/spark/work-dir --env lakesoul_home=/opt/spark/work-dir/lakesoul.properties swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 spark-submit --driver-memory 12G --executor-memory 12G --conf spark.driver.memoryOverhead=1500m --conf spark.executor.memoryOverhead=1500m --driver-class-path /opt/spark/work-dir/* --conf spark.hadoop.fs.s3.buffer.dir=/tmp --conf spark.hadoop.fs.s3a.buffer.dir=/tmp --conf  spark.hadoop.fs.s3a.fast.upload.buffer=disk --conf spark.hadoop.fs.s3a.fast.upload=true --class org.ccf.bdci2022.datalake_contest.Write --master local[4] /opt/spark/work-dir/datalake_contest.jar --localtest
 end=`date +%s`
 wtime=`expr $end - $start`
 echo $wtime
@@ -42,7 +42,7 @@ echo $wtime
 wres=`docker run --net ccf-bdci2022-local-env_default --rm -t swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2 aws  --no-sign-request --endpoint-url http://minio:9000 s3 ls --summarize --recursive s3://ccf-datalake-contest/datalake_table | grep "Total Size:" | awk '{if ($3>2000000000) print "true"; else print "false"}'`
 #start read
 start=`date +%s`
-docker run --cpus 4 -m 16000m --net ccf-bdci2022-local-env_default --rm -t -v ${PWD}/work-dir:/opt/spark/work-dir --env lakesoul_home=/opt/spark/work-dir/lakesoul.properties swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2  spark-submit --driver-memory 14G --executor-memory 14G --conf spark.driver.memoryOverhead=1500m --conf spark.executor.memoryOverhead=1500m --driver-class-path /opt/spark/work-dir/* --conf spark.hadoop.fs.s3.buffer.dir=/tmp --conf spark.hadoop.fs.s3a.buffer.dir=/tmp --conf  spark.hadoop.fs.s3a.fast.upload.buffer=disk --conf spark.hadoop.fs.s3a.fast.upload=true --class org.ccf.bdci2022.datalake_contest.Read --master local[4] /opt/spark/work-dir/datalake_contest.jar --localtest
+docker run --cpus 4 -m 30000m --net ccf-bdci2022-local-env_default --rm -t -v ${PWD}/work-dir:/opt/spark/work-dir --env lakesoul_home=/opt/spark/work-dir/lakesoul.properties swr.cn-north-4.myhuaweicloud.com/dmetasoul-repo/spark:v3.1.2  spark-submit --driver-memory 12G --executor-memory 12G --conf spark.driver.memoryOverhead=1500m --conf spark.executor.memoryOverhead=1500m --driver-class-path /opt/spark/work-dir/* --conf spark.hadoop.fs.s3.buffer.dir=/tmp --conf spark.hadoop.fs.s3a.buffer.dir=/tmp --conf  spark.hadoop.fs.s3a.fast.upload.buffer=disk --conf spark.hadoop.fs.s3a.fast.upload=true --class org.ccf.bdci2022.datalake_contest.Read --master local[4] /opt/spark/work-dir/datalake_contest.jar --localtest
 end=`date +%s`
 rtime=`expr $end - $start`
 

@@ -31,6 +31,7 @@ object Read {
       .config("spark.memory.fraction", "0.2")
       .config("spark.memory.storageFraction", "0.2")
       .config("spark.sql.extensions", "org.apache.spark.sql.hudi.HoodieSparkSessionExtension")
+      .config("spark.hadoop.fs.s3a.connection.maximum", 100)
 
     if (args.length >= 1 && args(0) == "--localtest")
       builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")

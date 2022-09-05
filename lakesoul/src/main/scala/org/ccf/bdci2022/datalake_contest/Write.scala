@@ -1,5 +1,6 @@
 package org.ccf.bdci2022.datalake_contest
 
+import com.dmetasoul.lakesoul.tables.LakeSoulTable
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.{col, when}
 
@@ -49,7 +50,7 @@ object Write {
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
 
     val tablePath = "s3://ccf-datalake-contest/datalake_table"
-    val df = spark.read.format("parquet").load(dataPath0).toDF()
+    val df = spark.read.format("parquet").load(dataPath0)
     df.write.format("lakesoul")
       .option("hashPartitions", "uuid")
       .option("hashBucketNum", 4)
@@ -68,19 +69,7 @@ object Write {
   }
 
   def upsertTable(spark: SparkSession, tablePath: String, path: String): Unit = {
-    val df1 = spark.read.format("lakesoul").load(tablePath)
-    val df2 = spark.read.format("parquet").load(path)
-    df1.join(df2, Seq("uuid"),"full").select(
-      col("uuid"),
-      when(df2("ip").isNotNull, df2("ip")).otherwise(df1("ip")).alias("ip"),
-      when(df2("hostname").isNotNull, df2("hostname")).otherwise(df1("hostname")).alias("hostname"),
-      when(df1("requests").isNotNull && df2("requests").isNotNull, df1("requests") + df2("requests"))
-        .otherwise(when(df1("requests").isNotNull, df1("requests")).otherwise(df2("requests"))).alias("requests"),
-      when(df2("name").isNotNull && df2("name").notEqual("null"), df2("name")).otherwise(df1("name")).alias("name"),
-      when(df2("city").isNotNull, df2("city")).otherwise(df1("city")).alias("city"),
-      when(df2("job").isNotNull, df2("job")).otherwise(df1("job")).alias("job"),
-      when(df2("phonenum").isNotNull, df2("phonenum")).otherwise(df1("phonenum")).alias("phonenum")
-    ).write.mode("Overwrite").format("lakesoul").save(tablePath)
+    LakeSoulTable.forPath(tablePath).upsert(spark.read.parquet(path))
   }
 
 }

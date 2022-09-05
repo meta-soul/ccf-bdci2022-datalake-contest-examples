@@ -2,6 +2,7 @@ package org.ccf.bdci2022.datalake_contest
 
 import com.dmetasoul.lakesoul.tables.LakeSoulTable
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.expr
 
 object Read {
   def main(args: Array[String]): Unit = {
@@ -28,6 +29,7 @@ object Read {
       .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
       .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
       .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.lakesoul.catalog.LakeSoulCatalog")
+      .config("spark.hadoop.fs.s3a.connection.maximum", 100)
 
     if (args.length >= 1 && args(0) == "--localtest")
       builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
@@ -35,8 +37,14 @@ object Read {
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
+
+    LakeSoulTable.registerMergeOperator(spark, "org.apache.spark.sql.lakesoul.MergeOpLong", "longSumMerge")
+    LakeSoulTable.registerMergeOperator(spark, "org.apache.spark.sql.execution.datasources.v2.merge.parquet.batch.merge_operator.MergeNonNullOp", "stringNonNullMerge")
     val tablePath= "s3://ccf-datalake-contest/datalake_table"
     val table = LakeSoulTable.forPath(tablePath)
-    table.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")
+    table.toDF
+      .withColumn("requests", expr("longSumMerge(requests)"))
+      .withColumn("name", expr("stringNonNullMerge(name)"))
+      .write.parquet("/opt/spark/work-dir/result/ccf/")
   }
 }
