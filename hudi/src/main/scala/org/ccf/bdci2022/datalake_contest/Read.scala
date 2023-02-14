@@ -22,7 +22,7 @@ object Read {
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
+      .config("spark.sql.warehouse.dir", "s3://lakesoul-test-bucket/hudi/")
       .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .config("spark.driver.memoryOverhead", "1500m")
       .config("spark.driver.memory", "14g")
@@ -33,17 +33,20 @@ object Read {
       .config("spark.sql.extensions", "org.apache.spark.sql.hudi.HoodieSparkSessionExtension")
 
     if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
-        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+        .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
+        .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
+        .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
 
-    val tablePath = "s3://ccf-datalake-contest/datalake_table/hudi_test"
+    val tablePath = "s3://lakesoul-test-bucket/hudi/datalake_table"
 
-    val df: DataFrame = spark.read.format("hudi").load(tablePath).select(col("uuid"), col("ip"), col("hostname"), col("requests"), col("name"),
-      col("city"), col("job"), col("phonenum"))
-
-    df.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")
+    spark.time {
+      val df: DataFrame = spark.read.format("hudi").load(tablePath).select(col("uuid"), col("ip"), col("hostname"), col("requests"), col("name"),
+        col("city"), col("job"), col("phonenum"))
+      df.write.format("noop").mode("Overwrite").save()
+    }
   }
 }

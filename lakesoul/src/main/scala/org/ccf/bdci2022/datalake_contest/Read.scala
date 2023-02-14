@@ -2,6 +2,8 @@ package org.ccf.bdci2022.datalake_contest
 
 import com.dmetasoul.lakesoul.tables.LakeSoulTable
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.lakesoul.sources.LakeSoulSQLConf
 
 object Read {
   def main(args: Array[String]): Unit = {
@@ -25,18 +27,23 @@ object Read {
       .config("spark.default.parallelism", 8)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
+      .config("spark.sql.warehouse.dir", "s3://lakesoul-test-bucket/lakesoul/")
       .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
       .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.lakesoul.catalog.LakeSoulCatalog")
 
     if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
-        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+        .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
+        .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
+        .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
+    SQLConf.get.setConfString(LakeSoulSQLConf.NATIVE_IO_ENABLE.key, "true")
     spark.sparkContext.setLogLevel("ERROR")
-    val tablePath= "s3://ccf-datalake-contest/datalake_table"
-    val table = LakeSoulTable.forPath(tablePath)
-    table.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")
+    val tablePath = "s3://lakesoul-test-bucket/lakesoul/datalake_table"
+    spark.time({
+      val table = LakeSoulTable.forPath(tablePath)
+      table.toDF.write.format("noop").mode("Overwrite").save()
+    })
   }
 }
