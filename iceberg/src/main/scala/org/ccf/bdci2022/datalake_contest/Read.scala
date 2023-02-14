@@ -24,20 +24,24 @@ object Read {
       .config("spark.default.parallelism", 8)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table")
+      .config("spark.sql.warehouse.dir", "s3://lakesoul-test-bucket/iceberg/")
       .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
       .config("spark.sql.catalog.iceberg", "org.apache.iceberg.spark.SparkCatalog")
       .config("spark.sql.catalog.iceberg.type", "hadoop")
-      .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/datalake_table")
+      .config("spark.sql.catalog.iceberg.warehouse", "s3://lakesoul-test-bucket/iceberg/datalake_table")
 
     if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
-        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+        .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
+        .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
+        .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
-    val table = spark.sql("select * from iceberg.default.datalake_table")
-    table.toDF.write.parquet("/opt/spark/work-dir/result/ccf/")
+    spark.time({
+      val table = spark.sql("select * from iceberg.default.datalake_table")
+      println(table.count())
+    })
   }
 
 }

@@ -2,7 +2,8 @@ package org.ccf.bdci2022.datalake_contest
 
 import com.dmetasoul.lakesoul.tables.LakeSoulTable
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.{col, when}
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.lakesoul.sources.LakeSoulSQLConf
 
 object Write {
   def main(args: Array[String]): Unit = {
@@ -26,16 +27,19 @@ object Write {
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
+      .config("spark.sql.warehouse.dir", "s3://lakesoul-test-bucket/datalake_table/")
       .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
       .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.lakesoul.catalog.LakeSoulCatalog")
 
     if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
-        .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.AnonymousAWSCredentialsProvider")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+        .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
+        .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
+        .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
+    SQLConf.get.setConfString(LakeSoulSQLConf.NATIVE_IO_ENABLE.key, "true")
 
     val dataPath0 = "/opt/spark/work-dir/data/base-0.parquet"
     val dataPath1 = "/opt/spark/work-dir/data/base-1.parquet"
@@ -49,26 +53,28 @@ object Write {
     val dataPath9 = "/opt/spark/work-dir/data/base-9.parquet"
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
 
-    val tablePath = "s3://ccf-datalake-contest/datalake_table"
-    val df = spark.read.format("parquet").load(dataPath0)
-    df.write.format("lakesoul")
-      .option("hashPartitions", "uuid")
-      .option("hashBucketNum", 4)
-      .mode("Overwrite").save(tablePath)
+    spark.time({
+      val tablePath = "s3://lakesoul-test-bucket/datalake_table"
+      val df = spark.read.format("parquet").load(dataPath0)
+      df.write.format("lakesoul")
+        .option("hashPartitions", "uuid")
+        .option("hashBucketNum", 4)
+        .mode("Overwrite").save(tablePath)
 
-    upsertTable(spark, tablePath, dataPath1)
-    upsertTable(spark, tablePath, dataPath2)
-    upsertTable(spark, tablePath, dataPath3)
-    upsertTable(spark, tablePath, dataPath4)
-    upsertTable(spark, tablePath, dataPath5)
-    upsertTable(spark, tablePath, dataPath6)
-    upsertTable(spark, tablePath, dataPath7)
-    upsertTable(spark, tablePath, dataPath8)
-    upsertTable(spark, tablePath, dataPath9)
-    upsertTable(spark, tablePath, dataPath10)
+      upsertTable(spark, tablePath, dataPath1)
+      upsertTable(spark, tablePath, dataPath2)
+      upsertTable(spark, tablePath, dataPath3)
+      upsertTable(spark, tablePath, dataPath4)
+      upsertTable(spark, tablePath, dataPath5)
+      upsertTable(spark, tablePath, dataPath6)
+      upsertTable(spark, tablePath, dataPath7)
+      upsertTable(spark, tablePath, dataPath8)
+      upsertTable(spark, tablePath, dataPath9)
+      upsertTable(spark, tablePath, dataPath10)
+    })
   }
 
-  def upsertTable(spark: SparkSession, tablePath: String, path: String): Unit = {
+  private def upsertTable(spark: SparkSession, tablePath: String, path: String): Unit = {
     LakeSoulTable.forPath(tablePath).upsert(spark.read.parquet(path))
   }
 
