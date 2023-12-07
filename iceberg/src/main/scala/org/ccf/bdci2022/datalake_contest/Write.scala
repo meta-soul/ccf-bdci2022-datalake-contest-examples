@@ -11,28 +11,29 @@ object Write {
       .config("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
       .config("hadoop.fs.s3a.committer.name", "directory")
       .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "append")
-      .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/opt/spark/work-dir/s3a_staging")
+      .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/opt/spark/work-dir/s3a")
       .config("spark.hadoop.mapreduce.outputcommitter.factory.scheme.s3a", "org.apache.hadoop.fs.s3a.commit.S3ACommitterFactory")
       .config("spark.hadoop.fs.s3a.path.style.access", "true")
       .config("spark.hadoop.fs.s3.buffer.dir", "/opt/spark/work-dir/s3")
       .config("spark.hadoop.fs.s3a.buffer.dir", "/opt/spark/work-dir/s3a")
-      .config("spark.hadoop.fs.s3a.fast.upload.buffer", "disk")
+      .config("spark.hadoop.fs.s3a.fast.upload.buffer", "bytebuffer")
       .config("spark.hadoop.fs.s3a.fast.upload", value = true)
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
+      .config("spark.hadoop.fs.s3a.connection.maximum", 1000)
       .config("spark.sql.shuffle.partitions", 10)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.default.parallelism", 8)
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://lakesoul-test-bucket/iceberg/")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/iceberg/")
       .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
       .config("spark.sql.catalog.iceberg", "org.apache.iceberg.spark.SparkCatalog")
       .config("spark.sql.catalog.iceberg.type", "hadoop")
-      .config("spark.sql.catalog.iceberg.warehouse", "s3://lakesoul-test-bucket/iceberg/datalake_table")
+      .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/iceberg/datalake_table")
 
     if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
         .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
@@ -51,6 +52,7 @@ object Write {
         |   job string,
         |   phonenum string)
         | USING iceberg
+        | PARTITIONED BY (bucket(4, uuid))
         | OPTIONS (
         |   'format-version'=2,
         |   format = 'PARQUET',
@@ -58,6 +60,9 @@ object Write {
         |   'write.parquet.compression-codec'='snappy',
         |   'write.merge.mode'='merge-on-read',
         |   'write.delete.mode'='merge-on-read',
+        |   'write.merge.distribution-mode'='hash',
+        |   'write.parquet.bloom-filter-max-bytes'='10485760',
+        |   'write.parquet.bloom-filter-enabled.column.uuid'=true,
         |   'write.update.mode'='merge-on-read'
         |)
         |""".stripMargin)
@@ -73,6 +78,7 @@ object Write {
     val dataPath8 = "/opt/spark/work-dir/data/base-8.parquet"
     val dataPath9 = "/opt/spark/work-dir/data/base-9.parquet"
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
+
 
     spark.time({
       mergeIntoTable(dataPath0, spark)
@@ -90,22 +96,29 @@ object Write {
   }
 
   private def mergeIntoTable(path: String, spark: SparkSession): Unit = {
-    val df = spark.read.format("parquet").load(path)
-    df.createOrReplaceTempView("temp_view")
-    spark.sql(
-      """
-        |MERGE INTO iceberg.default.datalake_table t USING (SELECT * FROM temp_view) u ON t.uuid = u.uuid
-        |WHEN MATCHED THEN
-        |   UPDATE SET
-        |     t.uuid = u.uuid,
-        |     t.ip = u.ip,
-        |     t.hostname = u.hostname,
-        |     t.requests = u.requests,
-        |     t.name = u.name,
-        |     t.city = u.city,
-        |     t.job = u.job,
-        |     t.phonenum = u.phonenum
-        |WHEN NOT MATCHED THEN INSERT *
-        |""".stripMargin)
+    var insertTimes = 1
+    if (path.contains("base-0")) {
+      insertTimes = 1
+    }
+    for (_ <- 1 to insertTimes) {
+      val df = if (insertTimes == 1) spark.read.format("parquet").load(path)
+                  else spark.read.format("parquet").load(path).sample(1.0 / insertTimes)
+      df.createOrReplaceTempView("temp_view")
+      spark.sql(
+        """
+          |MERGE INTO iceberg.default.datalake_table t USING (SELECT * FROM temp_view) u ON t.uuid = u.uuid
+          |WHEN MATCHED THEN
+          |   UPDATE SET
+          |     t.uuid = u.uuid,
+          |     t.ip = u.ip,
+          |     t.hostname = u.hostname,
+          |     t.requests = u.requests,
+          |     t.name = u.name,
+          |     t.city = u.city,
+          |     t.job = u.job,
+          |     t.phonenum = u.phonenum
+          |WHEN NOT MATCHED THEN INSERT *
+          |""".stripMargin)
+    }
   }
 }

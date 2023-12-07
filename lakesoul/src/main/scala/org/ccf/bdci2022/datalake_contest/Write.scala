@@ -18,7 +18,8 @@ object Write {
       .config("spark.hadoop.fs.s3a.path.style.access", "true")
       .config("spark.hadoop.fs.s3.buffer.dir", "/opt/spark/work-dir/s3")
       .config("spark.hadoop.fs.s3a.buffer.dir", "/opt/spark/work-dir/s3a")
-      .config("spark.hadoop.fs.s3a.fast.upload.buffer", "disk")
+      .config("spark.hadoop.fs.s3a.fast.upload.buffer", "bytebuffer")
+      .config("spark.hadoop.fs.s3a.connection.maximum", 1000)
       .config("spark.hadoop.fs.s3a.fast.upload", value = true)
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
       .config("spark.sql.shuffle.partitions", 10)
@@ -27,12 +28,12 @@ object Write {
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://lakesoul-test-bucket/datalake_table/")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
       .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
       .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.lakesoul.catalog.LakeSoulCatalog")
 
     if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
         .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
@@ -54,7 +55,7 @@ object Write {
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
 
     spark.time({
-      val tablePath = "s3://lakesoul-test-bucket/datalake_table"
+      val tablePath = "s3://ccf-datalake-contest/lakesoul/datalake_table"
       val df = spark.read.format("parquet").load(dataPath0)
       df.write.format("lakesoul")
         .option("hashPartitions", "uuid")

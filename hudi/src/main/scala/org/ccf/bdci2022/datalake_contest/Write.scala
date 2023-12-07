@@ -23,7 +23,7 @@ object Write {
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://lakesoul-test-bucket/datalake_table/")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
       .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .config("spark.driver.memoryOverhead", "1500m")
       .config("spark.driver.memory", "14g")
@@ -33,9 +33,11 @@ object Write {
       .config("spark.memory.storageFraction", "0.2")
       .config("spark.sql.extensions", "org.apache.spark.sql.hudi.HoodieSparkSessionExtension")
       .config("spark.hadoop.fs.s3a.connection.maximum", 100)
+      .config("spark.kryoserializer.buffer.max", 1024)
+      .config("hoodie.datasource.read.use.new.parquet.file.format", "true")
 
     if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
         .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
@@ -54,7 +56,7 @@ object Write {
     val dataPath8 = "/opt/spark/work-dir/data/base-8.parquet"
     val dataPath9 = "/opt/spark/work-dir/data/base-9.parquet"
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
-    val tablePath = "s3://lakesoul-test-bucket/hudi/datalake_table"
+    val tablePath = "s3://ccf-datalake-contest/hudi/datalake_table"
     val tableName : String = "hudi"
 
     spark.time({
@@ -68,7 +70,7 @@ object Write {
         .option(TABLE_TYPE.key(), MOR_TABLE_TYPE_OPT_VAL)
         .option(OPERATION.key(), BULK_INSERT_OPERATION_OPT_VAL)
         .option("hoodie.bulkinsert.sort.mode", "NONE")
-        .option("hoodie.index.type", "BUCKET")
+        .option("hoodie.index.type", "RECORD_INDEX")
         .option("hoodie.storage.layout.type", "BUCKET")
         .option("hoodie.index.bloom.num_entries", 10000000)
         .option("hoodie.bucket.index.num.buckets", 16)
@@ -92,6 +94,8 @@ object Write {
         .option("compaction.max_memory", 50)
         .option("write.parquet.block.size", 50)
         .option("write.merge.max_memory", 50)
+        .option("hoodie.datasource.read.use.new.parquet.file.format", "true")
+        .option("hoodie.spark.sql.insert.into.operation", "bulk_insert")
         .option(TBL_NAME.key(), tableName)
         .save(tablePath)
 
