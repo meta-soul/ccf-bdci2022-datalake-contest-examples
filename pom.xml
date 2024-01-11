@@ -11,6 +11,7 @@
         <module>lakesoul</module>
         <module>iceberg</module>
         <module>hudi</module>
+        <module>paimon</module>
     </modules>
     <packaging>pom</packaging>
     <name>CCF BDCI2022 DataLake Contest Examples POM</name>

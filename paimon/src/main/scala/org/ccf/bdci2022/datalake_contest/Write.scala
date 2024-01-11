@@ -1,11 +1,9 @@
 package org.ccf.bdci2022.datalake_contest
 
-import com.dmetasoul.lakesoul.tables.LakeSoulTable
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.lakesoul.sources.LakeSoulSQLConf
 
 object Write {
+
   def main(args: Array[String]): Unit = {
     val builder = SparkSession.builder()
       .appName("CCF BDCI 2022 DataLake Contest")
@@ -13,24 +11,25 @@ object Write {
       .config("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
       .config("hadoop.fs.s3a.committer.name", "directory")
       .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "append")
-      .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/opt/spark/work-dir/s3a_staging")
+      .config("spark.hadoop.fs.s3a.committer.staging.tmp.path", "/opt/spark/work-dir/s3a")
       .config("spark.hadoop.mapreduce.outputcommitter.factory.scheme.s3a", "org.apache.hadoop.fs.s3a.commit.S3ACommitterFactory")
       .config("spark.hadoop.fs.s3a.path.style.access", "true")
       .config("spark.hadoop.fs.s3.buffer.dir", "/opt/spark/work-dir/s3")
       .config("spark.hadoop.fs.s3a.buffer.dir", "/opt/spark/work-dir/s3a")
       .config("spark.hadoop.fs.s3a.fast.upload.buffer", "bytebuffer")
-      .config("spark.hadoop.fs.s3a.connection.maximum", 1000)
       .config("spark.hadoop.fs.s3a.fast.upload", value = true)
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
+      .config("spark.hadoop.fs.s3a.connection.maximum", 1000)
       .config("spark.sql.shuffle.partitions", 10)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.default.parallelism", 8)
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
-      .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
-      .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.lakesoul.catalog.LakeSoulCatalog")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/paimon/")
+      .config("spark.sql.extensions", "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
+      .config("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
+      .config("spark.sql.catalog.paimon.warehouse", "s3://ccf-datalake-contest/paimon/")
 
     if (args.length >= 1 && args(0) == "--localtest")
       builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
@@ -40,7 +39,27 @@ object Write {
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
-    SQLConf.get.setConfString(LakeSoulSQLConf.NATIVE_IO_ENABLE.key, "true")
+
+    spark.sql(
+      """(?x)
+        |CREATE TABLE paimon.default.datalake_table (
+        |   uuid string,
+        |   ip string,
+        |   hostname string,
+        |   requests int,
+        |   name string,
+        |   city string,
+        |   job string,
+        |   phonenum string)
+        | USING paimon
+        | TBLPROPERTIES (
+        |   'primary-key' = 'uuid',
+        |   'bucket'='4',
+        |   'file.format' = 'parquet',
+        |   'target-file-size' = '1g',
+        |   # 'write-only'='true'
+        |)
+        |""".stripMargin)
 
     val dataPath0 = "/opt/spark/work-dir/data/base-0.parquet"
     val dataPath1 = "/opt/spark/work-dir/data/base-1.parquet"
@@ -54,36 +73,46 @@ object Write {
     val dataPath9 = "/opt/spark/work-dir/data/base-9.parquet"
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
 
-    spark.time({
-      val tablePath = "s3://ccf-datalake-contest/lakesoul/datalake_table"
-      val df = spark.read.format("parquet").load(dataPath0)
-      df.write.format("lakesoul")
-        .option("hashPartitions", "uuid")
-        .option("hashBucketNum", 4)
-        .mode("Overwrite").save(tablePath)
 
-      upsertTable(spark, tablePath, dataPath1)
-      upsertTable(spark, tablePath, dataPath2)
-      upsertTable(spark, tablePath, dataPath3)
-      upsertTable(spark, tablePath, dataPath4)
-      upsertTable(spark, tablePath, dataPath5)
-//      LakeSoulTable.forPath(tablePath).compaction()
-      upsertTable(spark, tablePath, dataPath6)
-      upsertTable(spark, tablePath, dataPath7)
-      upsertTable(spark, tablePath, dataPath8)
-      upsertTable(spark, tablePath, dataPath9)
-      upsertTable(spark, tablePath, dataPath10)
-//      LakeSoulTable.forPath(tablePath).compaction()
+    spark.time({
+      mergeIntoTable(dataPath0, spark)
+      mergeIntoTable(dataPath1, spark)
+      mergeIntoTable(dataPath2, spark)
+      mergeIntoTable(dataPath3, spark)
+      mergeIntoTable(dataPath4, spark)
+      mergeIntoTable(dataPath5, spark)
+      mergeIntoTable(dataPath6, spark)
+      mergeIntoTable(dataPath7, spark)
+      mergeIntoTable(dataPath8, spark)
+      mergeIntoTable(dataPath9, spark)
+      mergeIntoTable(dataPath10, spark)
     })
   }
 
-  private def upsertTable(spark: SparkSession, tablePath: String, path: String): Unit = {
-    val insertTimes = 1
+  private def mergeIntoTable(path: String, spark: SparkSession): Unit = {
+    var insertTimes = 1
+    if (path.contains("base-0")) {
+      insertTimes = 1
+    }
     for (_ <- 1 to insertTimes) {
       val df = if (insertTimes == 1) spark.read.format("parquet").load(path)
-        else spark.read.format("parquet").load(path).sample(1.0 / insertTimes)
-      LakeSoulTable.forPath(tablePath).upsert(df)
+      else spark.read.format("parquet").load(path).sample(1.0 / insertTimes)
+      df.createOrReplaceTempView("temp_view")
+      spark.sql(
+        """
+          |MERGE INTO paimon.default.datalake_table t USING (SELECT * FROM temp_view) u ON t.uuid = u.uuid
+          |WHEN MATCHED THEN
+          |   UPDATE SET
+          |     t.uuid = u.uuid,
+          |     t.ip = u.ip,
+          |     t.hostname = u.hostname,
+          |     t.requests = u.requests,
+          |     t.name = u.name,
+          |     t.city = u.city,
+          |     t.job = u.job,
+          |     t.phonenum = u.phonenum
+          |WHEN NOT MATCHED THEN INSERT *
+          |""".stripMargin)
     }
   }
-
 }
