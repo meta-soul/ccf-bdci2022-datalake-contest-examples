@@ -1,13 +1,11 @@
 package org.ccf.bdci2022.datalake_contest
 
 import com.dmetasoul.lakesoul.tables.LakeSoulTable
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.functions.{col, expr}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.lakesoul.sources.LakeSoulSQLConf
-import org.apache.spark.sql.streaming.Trigger
 
-object Read {
+object Compaction {
   def main(args: Array[String]): Unit = {
     val builder = SparkSession.builder()
       .appName("CCF BDCI 2022 DataLake Contest")
@@ -38,24 +36,28 @@ object Read {
       .config("spark.memory.offHeap.enabled", value = true)
       .config("spark.memory.offHeap.size", "2g")
 
-//    if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
-        .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
-        .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
-        .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
+    //    if (args.length >= 1 && args(0) == "--localtest")
+    builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+      .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
+      .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
+      .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
-    spark.sparkContext.setLogLevel("ERROR")
+//    spark.sparkContext.setLogLevel("ERROR")
     SQLConf.get.setConfString(LakeSoulSQLConf.NATIVE_IO_ENABLE.key, "true")
 
-//    val tablePath= "s3://ccf-datalake-contest/lakesoul/datalake_table"
-    val tablePath = "/opt/spark/work-dir/result/table_new_compaction"
-//    val tablePath = "hdfs://chenxu-dev:9000/result/table"
+    val tablePath= "s3://ccf-datalake-contest/lakesoul/datalake_table"
+    //    val tablePath = "/opt/spark/work-dir/result/table"
+    //    val tablePath = "hdfs://chenxu-dev:9000/result/table"
+    spark.time {
+      val table = LakeSoulTable.forPath(tablePath)
+      table.compaction()
+    }
+    Thread.sleep(10000000)
     for (_ <- 1 to 3) {
       val table = LakeSoulTable.forPath(tablePath).toDF
       spark.time({
         println(table.count())
-//        table.compaction()
       })
       spark.time({
         table.write.format("noop").mode("Overwrite").save()

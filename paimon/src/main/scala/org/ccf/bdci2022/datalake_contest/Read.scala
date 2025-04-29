@@ -26,26 +26,29 @@ object Read {
       .config("spark.default.parallelism", 8)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/paimon/")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/paimon")
       .config("spark.sql.extensions", "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
       .config("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
-      .config("spark.sql.catalog.paimon.warehouse", "s3://ccf-datalake-contest/paimon/")
+      .config("spark.sql.catalog.paimon.warehouse", "s3://ccf-datalake-contest/paimon")
+      .config("spark.sql.defaultCatalog", "paimon")
 
-    if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
+//    if (args.length >= 1 && args(0) == "--localtest")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
         .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
-    val table = spark.sql("select * from paimon.default.datalake_table")
-    spark.time({
-      println(table.count())
-    })
-    spark.time({
-      table.write.format("noop").mode("Overwrite").save()
-    })
+    for (_ <- 1 to 3) {
+      val table = spark.sql("select * from paimon.default.datalake_table")
+      spark.time({
+        println(table.count())
+      })
+      spark.time({
+        table.write.format("noop").mode("Overwrite").save()
+      })
+    }
   }
 
 }

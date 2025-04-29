@@ -24,24 +24,29 @@
     </properties>
 
     <dependencies>
+<!--        <dependency>-->
+<!--            <groupId>org.apache.paimon</groupId>-->
+<!--            <artifactId>paimon-spark-3.3</artifactId>-->
+<!--            <version>0.7-SNAPSHOT</version>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.apache.paimon</groupId>-->
+<!--                    <artifactId>paimon-bundle</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.scala-lang</groupId>-->
+<!--                    <artifactId>*</artifactId>-->
+<!--                </exclusion>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.slf4j</groupId>-->
+<!--                    <artifactId>slf4j-api</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.apache.paimon</groupId>
             <artifactId>paimon-spark-3.3</artifactId>
-            <version>0.7-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.paimon</groupId>
-                    <artifactId>paimon-bundle</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.scala-lang</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>1.0.0</version>
         </dependency>
         <!-- scala deps -->
         <dependency>

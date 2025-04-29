@@ -2,7 +2,8 @@ package org.ccf.bdci2022.datalake_contest
 
 import org.apache.spark.sql.SparkSession
 
-object Read {
+object Compaction {
+
   def main(args: Array[String]): Unit = {
     val builder = SparkSession.builder()
       .appName("CCF BDCI 2022 DataLake Contest")
@@ -25,22 +26,25 @@ object Read {
       .config("spark.default.parallelism", 8)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/iceberg")
-      .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
-      .config("spark.sql.catalog.iceberg", "org.apache.iceberg.spark.SparkCatalog")
-      .config("spark.sql.catalog.iceberg.type", "hadoop")
-      .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/iceberg")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/paimon")
+      .config("spark.sql.extensions", "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
+      .config("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
+      .config("spark.sql.catalog.paimon.warehouse", "s3://ccf-datalake-contest/paimon")
+      .config("spark.sql.defaultCatalog", "paimon")
 
-//    if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
-        .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
-        .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
-        .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
+    //    if (args.length >= 1 && args(0) == "--localtest")
+    builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+      .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
+      .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
+      .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
+    spark.time({
+      spark.sql("CALL sys.compact(table => 'default.datalake_table')").show()
+    })
     for (_ <- 1 to 3) {
-      val table = spark.sql("select * from iceberg.default.datalake_table")
+      val table = spark.sql("select * from paimon.default.datalake_table")
       spark.time({
         println(table.count())
       })
@@ -49,5 +53,4 @@ object Read {
       })
     }
   }
-
 }

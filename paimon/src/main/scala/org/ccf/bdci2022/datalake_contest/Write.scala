@@ -1,6 +1,7 @@
 package org.ccf.bdci2022.datalake_contest
 
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.lit
 
 object Write {
 
@@ -20,19 +21,20 @@ object Write {
       .config("spark.hadoop.fs.s3a.fast.upload", value = true)
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
       .config("spark.hadoop.fs.s3a.connection.maximum", 1000)
-      .config("spark.sql.shuffle.partitions", 10)
+      .config("spark.sql.shuffle.partitions", 8)
       .config("spark.sql.files.maxPartitionBytes", "1g")
       .config("spark.default.parallelism", 8)
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/paimon/")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/paimon")
       .config("spark.sql.extensions", "org.apache.paimon.spark.extensions.PaimonSparkSessionExtensions")
       .config("spark.sql.catalog.paimon", "org.apache.paimon.spark.SparkCatalog")
-      .config("spark.sql.catalog.paimon.warehouse", "s3://ccf-datalake-contest/paimon/")
+      .config("spark.sql.catalog.paimon.warehouse", "s3://ccf-datalake-contest/paimon")
+      .config("spark.sql.defaultCatalog", "paimon")
 
-    if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
+//    if (args.length >= 1 && args(0) == "--localtest")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
         .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
@@ -41,7 +43,7 @@ object Write {
     spark.sparkContext.setLogLevel("ERROR")
 
     spark.sql(
-      """(?x)
+      """
         |CREATE TABLE paimon.default.datalake_table (
         |   uuid string,
         |   ip string,
@@ -57,7 +59,7 @@ object Write {
         |   'bucket'='4',
         |   'file.format' = 'parquet',
         |   'target-file-size' = '1g',
-        |   # 'write-only'='true'
+        |   'write-only'='true'
         |)
         |""".stripMargin)
 
@@ -75,6 +77,8 @@ object Write {
 
 
     spark.time({
+//      val df = spark.read.format("parquet").load(dataPath0).withColumn("date", lit("20240116"))
+//      df.write.format("paimon").mode("append").saveAsTable("default.datalake_table")
       mergeIntoTable(dataPath0, spark)
       mergeIntoTable(dataPath1, spark)
       mergeIntoTable(dataPath2, spark)
@@ -87,6 +91,9 @@ object Write {
       mergeIntoTable(dataPath9, spark)
       mergeIntoTable(dataPath10, spark)
     })
+//    spark.time({
+//      spark.sql("CALL sys.compact(table => 'default.datalake_table', partitions => 'date=20240116')").show()
+//    })
   }
 
   private def mergeIntoTable(path: String, spark: SparkSession): Unit = {
@@ -95,15 +102,14 @@ object Write {
       insertTimes = 1
     }
     for (_ <- 1 to insertTimes) {
-      val df = if (insertTimes == 1) spark.read.format("parquet").load(path)
-      else spark.read.format("parquet").load(path).sample(1.0 / insertTimes)
+      val df = (if (insertTimes == 1) spark.read.format("parquet").load(path)
+      else spark.read.format("parquet").load(path).sample(1.0 / insertTimes))
       df.createOrReplaceTempView("temp_view")
       spark.sql(
         """
           |MERGE INTO paimon.default.datalake_table t USING (SELECT * FROM temp_view) u ON t.uuid = u.uuid
           |WHEN MATCHED THEN
           |   UPDATE SET
-          |     t.uuid = u.uuid,
           |     t.ip = u.ip,
           |     t.hostname = u.hostname,
           |     t.requests = u.requests,

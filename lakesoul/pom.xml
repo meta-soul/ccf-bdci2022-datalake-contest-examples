@@ -24,7 +24,7 @@
         <dependency>
             <groupId>com.dmetasoul</groupId>
             <artifactId>lakesoul-spark</artifactId>
-            <version>2.5.0-spark-3.3</version>
+            <version>3.3-3.0.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 
@@ -108,7 +108,6 @@
             <version>3.3.3</version>
             <scope>provided</scope>
         </dependency>
-
     </dependencies>
 
     <build>

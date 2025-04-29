@@ -2,7 +2,8 @@ package org.ccf.bdci2022.datalake_contest
 
 import org.apache.spark.sql.SparkSession
 
-object Read {
+object Compaction {
+
   def main(args: Array[String]): Unit = {
     val builder = SparkSession.builder()
       .appName("CCF BDCI 2022 DataLake Contest")
@@ -31,14 +32,26 @@ object Read {
       .config("spark.sql.catalog.iceberg.type", "hadoop")
       .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/iceberg")
 
-//    if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
-        .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
-        .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
-        .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
+    //    if (args.length >= 1 && args(0) == "--localtest")
+    builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
+      .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
+      .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
+      .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
     spark.sparkContext.setLogLevel("ERROR")
+    spark.time {
+      spark.sql("""
+                  |CALL iceberg.system.rewrite_data_files(
+                  |  table => 'default.datalake_table',
+                  |  strategy => 'binpack',
+                  |  options => map(
+                  |    'rewrite-job-order','bytes-asc',
+                  |    'target-file-size-bytes','1073741824', -- 1GB
+                  |    'max-file-group-size-bytes','10737418240' -- 10GB
+                  |  )
+                  |)""".stripMargin)
+    }
     for (_ <- 1 to 3) {
       val table = spark.sql("select * from iceberg.default.datalake_table")
       spark.time({

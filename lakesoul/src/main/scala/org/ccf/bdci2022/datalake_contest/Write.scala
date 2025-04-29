@@ -23,7 +23,7 @@ object Write {
       .config("spark.hadoop.fs.s3a.fast.upload", value = true)
       .config("spark.hadoop.fs.s3a.multipart.size", 67108864)
       .config("spark.sql.shuffle.partitions", 10)
-      .config("spark.sql.files.maxPartitionBytes", "1g")
+      .config("spark.sql.files.maxPartitionBytes", "2g")
       .config("spark.default.parallelism", 8)
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
@@ -31,15 +31,18 @@ object Write {
       .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/datalake_table/")
       .config("spark.sql.extensions", "com.dmetasoul.lakesoul.sql.LakeSoulSparkSessionExtension")
       .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.lakesoul.catalog.LakeSoulCatalog")
+      .config("spark.dmetasoul.lakesoul.compaction.level.file.number.limit", "5")
+      .config("spark.dmetasoul.lakesoul.compaction.level.file.merge.num.limit", "2")
+      .config("spark.sql.parquet.columnarReaderBatchSize", "1024")
 
-    if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
+//    if (args.length >= 1 && args(0) == "--localtest")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
         .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
 
     val spark = builder.getOrCreate()
-    spark.sparkContext.setLogLevel("ERROR")
+    spark.sparkContext.setLogLevel("INFO")
     SQLConf.get.setConfString(LakeSoulSQLConf.NATIVE_IO_ENABLE.key, "true")
 
     val dataPath0 = "/opt/spark/work-dir/data/base-0.parquet"
@@ -55,11 +58,14 @@ object Write {
     val dataPath10 = "/opt/spark/work-dir/data/base-10.parquet"
 
     spark.time({
-      val tablePath = "s3://ccf-datalake-contest/lakesoul/datalake_table"
+//      val tablePath = "s3://ccf-datalake-contest/lakesoul/datalake_table"
+      val tablePath = "/opt/spark/work-dir/result/table_new_compaction"
+//      val tablePath = "hdfs://chenxu-dev:9000/result/table"
       val df = spark.read.format("parquet").load(dataPath0)
       df.write.format("lakesoul")
         .option("hashPartitions", "uuid")
         .option("hashBucketNum", 4)
+        .option("shortTableName", "lakesoul_test_table_new_compact")
         .mode("Overwrite").save(tablePath)
 
       upsertTable(spark, tablePath, dataPath1)
@@ -67,22 +73,31 @@ object Write {
       upsertTable(spark, tablePath, dataPath3)
       upsertTable(spark, tablePath, dataPath4)
       upsertTable(spark, tablePath, dataPath5)
-//      LakeSoulTable.forPath(tablePath).compaction()
       upsertTable(spark, tablePath, dataPath6)
       upsertTable(spark, tablePath, dataPath7)
       upsertTable(spark, tablePath, dataPath8)
       upsertTable(spark, tablePath, dataPath9)
       upsertTable(spark, tablePath, dataPath10)
-//      LakeSoulTable.forPath(tablePath).compaction()
+//      spark.time {
+//        LakeSoulTable.forPath(tablePath).compaction()
+//      }
     })
   }
 
   private def upsertTable(spark: SparkSession, tablePath: String, path: String): Unit = {
-    val insertTimes = 1
-    for (_ <- 1 to insertTimes) {
-      val df = if (insertTimes == 1) spark.read.format("parquet").load(path)
+    println("upsert table")
+    spark.time {
+      val insertTimes = 10
+      for (_ <- 1 to insertTimes) {
+        val df = if (insertTimes == 1) spark.read.format("parquet").load(path)
         else spark.read.format("parquet").load(path).sample(1.0 / insertTimes)
-      LakeSoulTable.forPath(tablePath).upsert(df)
+        LakeSoulTable.forPath(tablePath).upsert(df)
+      }
+    }
+    println("compaction table")
+//    LakeSoulTable.forPath(tablePath).toDF.write.format("noop").mode("overwrite").save()
+    spark.time {
+      LakeSoulTable.forPath(tablePath).newCompaction()
     }
   }
 

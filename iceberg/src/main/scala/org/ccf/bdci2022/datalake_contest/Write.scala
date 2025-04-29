@@ -26,14 +26,14 @@ object Write {
       .config("spark.sql.parquet.mergeSchema", value = false)
       .config("spark.sql.parquet.filterPushdown", value = true)
       .config("spark.hadoop.mapred.output.committer.class", "org.apache.hadoop.mapred.FileOutputCommitter")
-      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/iceberg/")
+      .config("spark.sql.warehouse.dir", "s3://ccf-datalake-contest/iceberg")
       .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions")
       .config("spark.sql.catalog.iceberg", "org.apache.iceberg.spark.SparkCatalog")
       .config("spark.sql.catalog.iceberg.type", "hadoop")
-      .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/iceberg/datalake_table")
+      .config("spark.sql.catalog.iceberg.warehouse", "s3://ccf-datalake-contest/iceberg")
 
-    if (args.length >= 1 && args(0) == "--localtest")
-      builder.config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000")
+//    if (args.length >= 1 && args(0) == "--localtest")
+      builder.config("spark.hadoop.fs.s3a.endpoint", "http://localhost:9000")
         .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
         .config("spark.hadoop.fs.s3a.access.key", "minioadmin1")
         .config("spark.hadoop.fs.s3a.secret.key", "minioadmin1")
@@ -57,7 +57,7 @@ object Write {
         |   'format-version'=2,
         |   format = 'PARQUET',
         |   write.upsert.enable = true,
-        |   'write.parquet.compression-codec'='snappy',
+        |   'write.parquet.compression-codec'='zstd',
         |   'write.merge.mode'='merge-on-read',
         |   'write.delete.mode'='merge-on-read',
         |   'write.merge.distribution-mode'='hash',
